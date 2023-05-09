@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+  </head>
+  <body>
+    <select name="drawSelector" id="drawSelector">
+      <option value="Linia">Linia</option>
+      <option value="Punt">Punt</option>
+      <option value="Arc">Arc</option>
+    </select>
+    <canvas
+      id="canvas"
+      width="800"
+      height="600"
+      style="border: 1px solid black"
+    ></canvas>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // Connectem amb el servidor de Socket.IO
+      const socket = io()
+      let xinicial
+      let yinicial
+      // Afegim la lògica del canvas
+      const canvas = document.getElementById('canvas')
+      const selector = document.getElementById('drawSelector')
+      const ctx = canvas.getContext('2d')
+      let dibuixant = false
+      let drawType = 'Linia'
+      console.log('Canvas:', canvas)
+      console.log('Context:', ctx)
+      console.log('Socket:', socket)
+      // Quan el client fa clic o mou el ratolí
+      canvas.addEventListener('mousedown', event => {
+        dibuixant = true
+        const dibuix = {
+          tipus: drawType,
+          color: 'negre',
+          x: event.offsetX,
+          y: event.offsetY
+        }
+        xinicial = event.offsetX
+        yinicial = event.offsetY
+        socket.emit('dibuix', dibuix)
+      })
+
+      canvas.addEventListener('mousemove', event => {
+        if (dibuixant) {
+          // const dibuix = {
+          //   tipus: 'linia',
+          //   color: 'negre',
+          //   x0: event.offsetX,
+          //   y0: event.offsetY,
+          //   x1: event.offsetX + 1,
+          //   y1: event.offsetY + 1
+          // }
+          // socket.emit('dibuix', dibuix);
+        }
+      })
+
+      canvas.addEventListener('mouseup', event => {
+        const dibuix = {
+          tipus: drawType,
+          color: 'negre',
+          x0: xinicial,
+          y0: yinicial,
+          x1: event.offsetX,
+          y1: event.offsetY
+        }
+        socket.emit('dibuix', dibuix)
+        dibuixant = false
+      })
+      selector.addEventListener('input', e => {
+        drawType = e.currentTarget.value
+      })
+      // Quan el servidor envia un dibuix
+      socket.on('dibuix', dibuix => {
+        switch (dibuix.tipus) {
+          case 'Punt':
+            ctx.beginPath()
+            ctx.fillStyle = dibuix.color
+            ctx.arc(dibuix.x, dibuix.y, 5, 0, 2 * Math.PI)
+            ctx.fill()
+            ctx.closePath()
+            break
+          case 'Linia':
+            ctx.beginPath()
+            ctx.strokeStyle = dibuix.color
+            ctx.moveTo(dibuix.x0, dibuix.y0)
+            ctx.lineTo(dibuix.x1, dibuix.y1)
+            ctx.stroke()
+            ctx.closePath()
+            break
+          case 'Arc':
+            if (dibuix.y0 != undefined || dibuix.x0 != undefined) {
+              console.log(dibuix.y0)
+              ctx.beginPath()
+              ctx.strokeStyle = dibuix.color
+              ctx.arc(dibuix.x0, dibuix.y0, 50, 180, 0)
+              ctx.stroke()
+              ctx.closePath()
+            }
+            break
+        }
+      })
+    </script>
+  </body>
+</html>
